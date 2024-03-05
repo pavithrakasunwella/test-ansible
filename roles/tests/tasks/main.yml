@@ -1,0 +1,45 @@
+---
+- name: create backup directory
+  file:
+    path: "{{home_path}}deployment/{{_date}}"
+    state: directory
+
+- name: Check if existing files exist
+  stat:
+    path: "{{home_path}}/config"
+  register: existing_files
+
+- name: Move existing files to backup folder
+  shell: mv *.jar libs config "{{home_path}}deployment/{{_date}}/"
+  args:
+    chdir: "{{home_path}}"
+  when: existing_files.stat.exists 
+
+- name: Move existing files to backup folder.
+  shell: mv lib config "{{ home_path }}deployment/{{ _date }}/"
+  args:
+    chdir: "{{ home_path }}"
+  when: existing_files.stat.exists 
+
+- name: archive the backup directory
+  archive:
+    path: "{{home_path}}deployment/{{_date}}"
+    dest: "{{home_path}}deployment/{{_date}}.zip"
+    format: zip
+
+- name: delete backup folder
+  file:
+    state: absent
+    path: "{{home_path}}deployment/{{_date}}/"
+
+
+- name: Copy 'dist' directory to the server
+  ansible.builtin.copy:
+    src: "{{PROJECT_DIR}}/dist/"
+    dest: "{{ home_path }}"
+  register: copy_result
+
+- name: Check if the copy was successful
+  fail:
+    msg: "Failed to copy 'temp_artifact' directory to the server"
+  when: copy_result.failed
